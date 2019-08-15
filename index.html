@@ -1,0 +1,481 @@
+<html>
+  <head>
+    <title>Building Intuitive APIs with TypeScript</title>
+    <link rel="stylesheet" href="/bkjs/reveal.css" />
+    <link rel="stylesheet" href="/bkjs/code.css" />
+    <link rel="stylesheet" href="/bkjs/style.css" />
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides">
+        <section>
+          <h1>Building Intuitive APIs with TypeScript</h1>
+          <p>by <span id="typewriter">Jake Lazaroff</span></p>
+          <p><a href="https://jake.nyc">jake.nyc</a></p>
+        </section>
+
+        <section>
+          <p>my job: <a href="https://parsecgaming.com">Parsec</a></p>
+          <img src="/bkjs/parsec.svg" alt="Parsec" />
+        </section>
+
+        <section>
+          <p>
+            my band:
+            <a href="https://babygotbacktalk.bandcamp.com">babygotbacktalk</a>
+          </p>
+          <img src="/bkjs/bgbt.jpg" alt="babygotbacktalk" />
+        </section>
+
+        <section>
+          <h3>Why?</h3>
+          <div class="side-by-side">
+            <img src="/bkjs/tool.png" />
+            <div>
+              <p>
+                The <strong>I</strong> in "API" stands for
+                <strong>interface</strong>!
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h3>What's TypeScript?</h3>
+          <blockquote>
+            <p>
+              TypeScript is a statically typed superset of JavaScript that
+              compiles to plain JavaScript.
+            </p>
+          </blockquote>
+        </section>
+
+        <section>
+          <h3>What's "statically typed"?</h3>
+          <p>
+            Everything in a program has a type, like "number" or "function that
+            returns a string".
+          </p>
+          <p>
+            With static types, we can make sure a program's types work together
+            without even running it.
+          </p>
+        </section>
+
+        <section>
+          <pre><code data-trim>
+            function square(x: number) {
+              return x * x;
+            }
+          </code></pre>
+
+          <pre class="fragment"><code data-trim>
+            square(2);
+          </code></pre>
+
+          <pre class="fragment"><code data-trim data-noescape>
+            square(<mark class="type-error">"how YOU doin"</mark>);
+          </code></pre>
+        </section>
+
+        <section>
+          <h3>The gameplan:</h3>
+          <p>
+            We're gonna go on a whirlwind tour of some cool features of
+            TypeScript and a nifty design pattern.
+          </p>
+        </section>
+
+        <section>
+          <h2>Feature 1: Unions and Intersections</h2>
+          <p>
+            Unions and intersections are ways of combining different types into
+            one.
+          </p>
+          <p>
+            In a union, an object of the new type can have properties of
+            <strong>either</strong> type. In an intersection, an object of the
+            new type will have properties of <strong>both</strong> types.
+          </p>
+        </section>
+
+        <section>
+          <div class="side-by-side">
+            <div>
+              <h3>Unions</h3>
+              <pre><code data-trim data-noescape>
+              let foo: string | number;
+
+              foo = "test";
+              foo = 123;
+              <mark class="type-error">foo</mark> = false;
+            </code></pre>
+            </div>
+            <div>
+              <h3>Intersections</h3>
+              <pre><code data-trim data-noescape>
+              let obj: { foo: string } & { bar: number };
+
+              obj = {
+                foo: "moo",
+                bar: 2
+              };
+              <mark class="type-error">obj</mark> = { foo: "moo" };
+            </code></pre>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2>Feature 2: Generics</h2>
+          <p>
+            Generics let you write your program so that it doesn't know which
+            types it's using ahead of time.
+          </p>
+          <p>If types were functions, generics would be their arguments.</p>
+        </section>
+
+        <section>
+          <pre><code data-trim>
+            function concat(x: any[], y: any[]) {
+              return x.concat(y);
+            }
+          </code></pre>
+
+          <pre class="fragment"><code data-trim>
+            const a = [1, 2, 3]; // number[]
+            const b = [4, 5, 6]; // number[]
+            const result = concat(a, b);
+            result; // any[] (we lost the type!)
+          </code></pre>
+        </section>
+
+        <section>
+          <pre><code data-trim>
+            function concat&lt;T&gt;(x: T[], y: T[]) {
+              return x.concat(y);
+            }
+          </code></pre>
+
+          <pre class="fragment"><code data-trim>
+            const a = [1, 2, 3]; // number[]
+            const b = [4, 5, 6]; // number[]
+            const result = concat(a, b);
+            result; // number[] (the type is safe!)
+          </code></pre>
+        </section>
+
+        <section>
+          <pre><code data-trim>
+            function concat&lt;T extends { concat(x: T): T }&gt;(x: T, y: T) {
+              return x.concat(y);
+            }
+          </code></pre>
+
+          <pre class="fragment"><code data-trim>
+            const a = [1, 2, 3]; // number[]
+            const b = [4, 5, 6]; // number[]
+            const result = concat(a, b);
+            result; // number[] (works for numbers…)
+          </code></pre>
+
+          <pre class="fragment"><code data-trim>
+            const a: string = "foo"; // string
+            const b: string = "bar"; // string
+            const result = concat(a, b);
+            result; // string (…and strings!)
+          </code></pre>
+        </section>
+
+        <section>
+          <h2>Feature 3: Mapped types</h2>
+          <p>Mapped types let you transform one type into another.</p>
+          <p>
+            They're kinda like <code>map</code> in normal JavaScript, but for
+            types.
+          </p>
+        </section>
+
+        <section>
+          <pre><code data-trim>
+            function stringify&lt;T&gt;(x: T): { [K in keyof T]: string } {
+              // some code that changes all the object keys to strings
+            }
+          </code></pre>
+
+          <pre class="fragment"><code data-trim>
+            const obj = {
+              foo: 1,
+              bar: 2
+            };
+
+            const result = stringify(obj);
+            result; // { foo: string; bar: string; }
+          </code></pre>
+        </section>
+
+        <section>
+          <h2>Design pattern: Builder</h2>
+          <p>
+            The Builder decouples the creation of an object from its internal
+            representation.
+          </p>
+          <p>
+            It does this by using a separate class to create it, step-by-step.
+          </p>
+        </section>
+
+        <section>
+          <div class="side-by-side">
+            <pre><code data-trim>
+              class Car {
+                color: string;
+                doors: number;
+              }
+            </code></pre>
+            <pre><code data-trim>
+              class CarBuilder {
+                private car = new Car();
+
+                setColor(color: string) {
+                  this.car.color = color;
+                }
+
+                setDoors(doors: number) {
+                  this.car.doors = doors;
+                }
+
+                private getCar() {
+                  return this.car;
+                }
+              }
+            </code></pre>
+          </div>
+        </section>
+
+        <section>
+          <pre><code data-trim>
+            const car = new CarBuilder()
+              .setColor('red')
+              .setDoors(2)
+              .getCar();
+          </code></pre>
+        </section>
+
+        <section>
+          <h2>Putting it all together</h2>
+          <p>
+            To illustrate how these all work together, we're going to create a
+            simple SQL query builder.
+          </p>
+        </section>
+
+        <section>
+          <h3>What it looks like:</h3>
+          <div class="side-by-side">
+            <pre><code data-trim>
+              interface Schema {
+                users: {
+                  id: number;
+                  name: string;
+                  age: number;
+                }
+                jobs: {
+                  id: number;
+                  name: string;
+                  salary: number;
+                }
+              }
+            </code></pre>
+
+            <pre><code data-trim>
+              const query = new Query&lt;Schema&gt;('users');
+
+              const result = query
+                .select("id")
+                .select("name")
+                .exec();
+            </code></pre>
+          </div>
+        </section>
+
+        <section>
+          <p>
+            First, we make a Query class that knows the database schema and the
+            table from which it's selecting.
+          </p>
+          <pre><code data-trim>
+            class Query&lt;Schema, Table extends keyof Schema&gt; {
+              private table: Table;
+
+              constructor(table: Table) {
+                this.table = table;
+              }
+            }
+          </code></pre>
+        </section>
+
+        <section>
+          <p>
+            Next, we add another generic to the class with the type of the
+            queried result. We also need to keep track of which columns we're
+            selecting.
+          </p>
+          <pre><code data-trim>
+            class Query&lt;Schema, Table extends keyof Schema, Result = {}&gt; {
+              // ...
+              private columns: Array&lt;keyof Schema[Table]&gt; = []:
+
+              constructor(data: Schema, columns: Array&lt;keyof Schema[Table]&gt;) {
+                // ...
+                this.columns = columns;
+              }
+            }
+          </code></pre>
+        </section>
+
+        <section>
+          <p>
+            Now, the secret sauce: every step of the builder, we
+            <strong>intersect</strong> the result type with the selected key.
+          </p>
+          <pre><code data-trim>
+            class Query&lt;Schema, Table extends keyof Schema, Result = {}&gt; {
+              // ...
+
+              select&lt;Key extends keyof Schema[Table]&gt;(key: Key) {
+
+                type NextResult = Result & { [K in Key]: Schema[Table][K] };
+
+                return new Query&lt;Schema, Table, NextResult&gt;(this.table, [
+                  ...this.columns,
+                  key
+                ]);
+              }
+            }
+          </code></pre>
+        </section>
+
+        <section>
+          <p>
+            Finally, we need a method to execute the query.
+          </p>
+          <pre><code data-trim>
+            class Query&lt;Schema, Table extends keyof Schema, Result = {}&gt; {
+              // ...
+
+              exec(): Result[] {
+                const columns = this.columns.join(', ');
+                const query = `SELECT ${columns} FROM ${this.table};`;
+                // some code actually running the query
+              }
+            }
+          </code></pre>
+        </section>
+
+        <section>
+          <div class="side-by-side">
+            <pre><code data-trim>
+              interface Schema {
+                users: {
+                  id: number;
+                  name: string;
+                  age: number;
+                }
+                jobs: {
+                  id: number;
+                  name: string;
+                  salary: number;
+                }
+              }
+            </code></pre>
+
+            <pre><code data-trim>
+              const query = new Query&lt;Schema&gt;('users');
+
+              const result = new
+                .select("id")
+                .select("name")
+                .exec();
+            </code></pre>
+          </div>
+        </section>
+
+        <section>
+          <h2>Why is it intuitive?</h2>
+        </section>
+
+        <section>
+          <p>It knows the type of the result!</p>
+
+          <pre><code data-trim>
+            const foo = new Query&lt;Schema&gt;('users')
+              .select("id")
+              .select("name")
+              .exec();
+            foo; // Array&lt;{ id: string; name: string }&gt;
+
+            const bar = new Query&lt;Schema&gt;('jobs')
+              .select("salary")
+              .exec();
+            bar; // Array&lt;{ salary: number }&gt;
+
+            const baz = new Query&lt;Schema&gt;('users').exec();
+            baz; // Array&lt;{}&gt;
+          </code></pre>
+        </section>
+
+        <section>
+          <p>It won't let you select columns that don't exist!</p>
+          <pre><code data-trim data-noescape>
+            const foo = new Query&lt;Schema&gt;('users')
+              .select(<mark class="type-error">"height"</mark>)
+              .result();
+          </code></pre>
+          <p>
+            (And if you use an editor that supports TypeScript, you'll get
+            autocomplete for the columns names!)
+          </p>
+        </section>
+
+        <section>
+          <h3>Extra credit</h3>
+          <ul>
+            <li>Disallow the names of already-selected columns!</li>
+            <li>Alias column names!</li>
+            <li>Join only tables with relationships!</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Thanks!</h2>
+        </section>
+      </div>
+    </div>
+    <script src="/bkjs/reveal.js"></script>
+    <script>
+      Reveal.initialize({
+        dependencies: [
+          { src: "/bkjs/highlight.js", async: true },
+          { src: "/bkjs/typewriter.js", async: true }
+        ]
+      });
+
+      Reveal.addEventListener("ready", () => {
+        new Typewriter("#typewriter", {
+          strings: [
+            "Jake Lazaroff",
+            "Jark Legsaresoft",
+            "Jake the Snake",
+            "Jerk Loseroff",
+            "Jake from State Farm",
+            "Jank Laseroff",
+            "Joke Lobstercough"
+          ],
+          autoStart: true,
+          loop: true
+        });
+      });
+    </script>
+  </body>
+</html>
